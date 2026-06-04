@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Plant Your Aloe</title>
+  <style>
+    body { margin: 0; background: #f5f5f0; font-family: sans-serif; color: #333; }
+    h1 { text-align: center; font-weight: normal; padding: 20px; margin: 0; font-size: 18px; }
+    #info { text-align: center; padding: 0 20px 20px; color: #666; font-size: 14px; }
+    #map {
+      position: relative;
+      width: 90vw;
+      height: 60vh;
+      margin: 0 auto;
+      background: #e8e8e0;
+      border: 1px solid #ccc;
+      cursor: crosshair;
+    }
+    .marker {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background: #7cb342;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    #submit {
+      display: block;
+      margin: 30px auto;
+      padding: 14px 40px;
+      background: #7cb342;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #submit:disabled { background: #ccc; }
+    #status { text-align: center; padding: 10px; color: #7cb342; font-size: 14px; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Plant your aloe</h1>
+  <div id="info">Tap on the map where you want to plant <strong id="leafId">—</strong></div>
+  <div id="map"></div>
+  <div id="status"></div>
+  <button id="submit" disabled>Plant here</button>
+  
+  <script>
+    const params = new URLSearchParams(location.search);
+    const leafId = params.get('id') || 'unknown';
+    document.getElementById('leafId').textContent = leafId;
+    
+    const map = document.getElementById('map');
+    const submitBtn = document.getElementById('submit');
+    const status = document.getElementById('status');
+    let chosenX = null, chosenY = null;
+    let marker = null;
+    
+    map.addEventListener('click', (e) => {
+      const rect = map.getBoundingClientRect();
+      chosenX = (e.clientX - rect.left) / rect.width;
+      chosenY = (e.clientY - rect.top) / rect.height;
+      
+      if (!marker) {
+        marker = document.createElement('div');
+        marker.className = 'marker';
+        map.appendChild(marker);
+      }
+      marker.style.left = (chosenX * 100) + '%';
+      marker.style.top = (chosenY * 100) + '%';
+      submitBtn.disabled = false;
+    });
+    
+    submitBtn.addEventListener('click', async () => {
+      if (chosenX == null) return;
+      submitBtn.disabled = true;
+      status.textContent = 'planting...';
+      
+      try {
+        const res = await fetch('/api/place', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: leafId, x: chosenX, y: chosenY })
+        });
+        if (res.ok) {
+          status.textContent = '🌱 planted!';
+        } else {
+          status.textContent = 'error, try again';
+          submitBtn.disabled = false;
+        }
+      } catch (err) {
+        status.textContent = 'network error';
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

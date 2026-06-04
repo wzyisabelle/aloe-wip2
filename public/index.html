@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Aloe Display</title>
+  <style>
+    body { margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; }
+    #map {
+      position: relative;
+      width: 90vw;
+      height: 90vh;
+      margin: 5vh auto;
+      background: #2a2a2a;
+      border: 1px solid #444;
+    }
+    .dot {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: #7cb342;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 0.5s ease;
+      box-shadow: 0 0 12px rgba(124, 179, 66, 0.6);
+    }
+    .label {
+      position: absolute;
+      font-size: 11px;
+      color: #aaa;
+      transform: translate(-50%, 20px);
+    }
+    h1 { text-align: center; font-weight: normal; margin: 20px 0 0; }
+  </style>
+</head>
+<body>
+  <h1>Aloe — Live Map</h1>
+  <div id="map"></div>
+  
+  <script>
+    const map = document.getElementById('map');
+    const dots = {};
+
+    function updateDot(id, x, y) {
+      let dot = dots[id];
+      if (!dot) {
+        dot = document.createElement('div');
+        dot.className = 'dot';
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = id;
+        dot.appendChild(label);
+        map.appendChild(dot);
+        dots[id] = dot;
+      }
+      dot.style.left = (x * 100) + '%';
+      dot.style.top = (y * 100) + '%';
+    }
+
+    // 初始加载：拿到当前所有叶片位置
+    fetch('/api/leaves')
+      .then(r => r.json())
+      .then(data => {
+        Object.entries(data).forEach(([id, pos]) => updateDot(id, pos.x, pos.y));
+      });
+
+    // WebSocket实时更新
+    const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(wsProtocol + '//' + location.host);
+    
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'update') {
+        updateDot(msg.id, msg.x, msg.y);
+      }
+    };
+    
+    ws.onopen = () => console.log('connected to server');
+    ws.onclose = () => console.log('disconnected');
+  </script>
+</body>
+</html>

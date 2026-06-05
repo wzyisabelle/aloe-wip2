@@ -2,51 +2,118 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Plant Your Aloe</title>
   <style>
-    body { margin: 0; background: #f5f5f0; font-family: sans-serif; color: #333; }
-    h1 { text-align: center; font-weight: normal; padding: 20px; margin: 0; font-size: 18px; }
-    #info { text-align: center; padding: 0 20px 20px; color: #666; font-size: 14px; }
+    @font-face {
+      font-family: 'Hubballi';
+      src: url('/assets/Hubballi-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    :root {
+      --aloe-green: #98B178;
+      --bg: #ffffff;
+      --text: #333333;
+    }
+    
+    body {
+      margin: 0; padding-top: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Hubballi', sans-serif;
+    }
+    
+    h1 {
+      text-align: center;
+      font-weight: normal;
+      padding: 20px 20px 6px; //第三个数标题到info的距离
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+    
+    #info {
+      text-align: center;
+      padding: 0 20px 14px; //第三个数info到地图的距离
+      color: #777;
+      font-size: 14px;
+    }
+    
+    #info strong {
+      color: var(--aloe-green);
+      font-weight: normal;
+    }
+    
+    #map-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0 16px;
+    }
+    
     #map {
       position: relative;
-      width: 90vw;
-      height: 60vh;
-      margin: 0 auto;
-      background: #e8e8e0;
-      border: 1px solid #ccc;
+      width: 100%;
+      max-width: 520px;
+      aspect-ratio: 3 / 4;
+      background-image: url('/assets/map.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-color: #ffffff;
       cursor: crosshair;
+      touch-action: manipulation;
     }
+    
     .marker {
       position: absolute;
-      width: 24px;
-      height: 24px;
-      background: #7cb342;
+      width: 14px;
+      height: 14px;
+      background: var(--aloe-green);
       border-radius: 50%;
       transform: translate(-50%, -50%);
       pointer-events: none;
+      box-shadow: 0 0 12px rgba(152, 177, 120, 0.5);
     }
+    
     #submit {
       display: block;
-      margin: 30px auto;
-      padding: 14px 40px;
-      background: #7cb342;
+      margin: 24px auto 16px;
+      padding: 14px 22px;
+      background: var(--aloe-green);
       color: white;
       border: none;
-      border-radius: 30px;
+      border-radius: 30px;//圆角
       font-size: 16px;
+      font-family: 'Hubballi', sans-serif;
+      letter-spacing: 1px;
       cursor: pointer;
     }
-    #submit:disabled { background: #ccc; }
-    #status { text-align: center; padding: 10px; color: #7cb342; font-size: 14px; min-height: 20px; }
+    
+    #submit:disabled {
+      background: #d4d4d4;
+    }
+    
+    #status {
+      text-align: center;
+      padding: 6px; 
+      margin-top: 14px; //地图底部到 planted! 的距离
+      color: var(--aloe-green);
+      font-size: 14px;
+      min-height: 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>Plant your aloe</h1>
+  <h1>PLANT YOUR ALOE</h1>
   <div id="info">Tap on the map where you want to plant <strong id="leafId">—</strong></div>
-  <div id="map"></div>
+  <div id="map-wrapper">
+    <div id="map"></div>
+  </div>
   <div id="status"></div>
-  <button id="submit" disabled>Plant here</button>
+  <button id="submit" disabled>Plant Here</button>
   
   <script>
     const params = new URLSearchParams(location.search);
@@ -86,7 +153,7 @@
           body: JSON.stringify({ id: leafId, x: chosenX, y: chosenY })
         });
         if (res.ok) {
-          status.textContent = '🌱 planted!';
+          status.textContent = "You've planted an aloe leaf here!"
         } else {
           status.textContent = 'error, try again';
           submitBtn.disabled = false;

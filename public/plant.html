@@ -35,7 +35,7 @@
     
 #info {
       color: #777;
-      font-size: 13px;
+      font-size: 15px;
       margin: 0;
       line-height: 1.4;
     }
@@ -93,7 +93,7 @@
       color: white;
       border: none;
       border-radius: 30px;/*圆角*/
-      font-size: 16px;
+      font-size: 17px;
       font-family: 'Hubballi', sans-serif;
       letter-spacing: 1px;
       cursor: pointer;
@@ -108,7 +108,7 @@
       padding: 6px; 
       margin-top: 14px; /*地图底部到 planted! 的距离*/
       color: var(--aloe-green);
-      font-size: 14px;
+      font-size: 15px;
       min-height: 20px;
     }
   </style>
@@ -118,7 +118,7 @@
     <div id="map">
       <div id="header">
         <h1>PLANT YOUR ALOE</h1>
-        <div id="info">Pin on the map<br>where you placed your aloe <strong id="leafId">—</strong></div>
+        <div id="info">Pin on the map<br>where you placed your <strong id="leafId">—</strong></div>
       </div>
     </div>
   </div>
@@ -163,7 +163,7 @@
           body: JSON.stringify({ id: leafId, x: chosenX, y: chosenY })
         });
         if (res.ok) {
-          status.textContent = "Planted! You can keep transplanting it wherever you like.";
+         status.innerHTML = "Planted!<br>You can keep transplanting it wherever you like.";
         } else {
           status.textContent = 'error, try again';
           submitBtn.disabled = false;

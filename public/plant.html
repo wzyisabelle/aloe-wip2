@@ -14,6 +14,8 @@
     
     :root {
       --aloe-green: #98B178;
+      --history-blue: #b4dff0;
+      --trail-grey: #b8b8b8;
       --bg: #ffffff;
       --text: #333333;
     }
@@ -33,7 +35,7 @@
       letter-spacing: 1px;
     }
     
-#info {
+    #info {
       color: #777;
       font-size: 15px;
       margin: 0;
@@ -74,6 +76,31 @@
       touch-action: manipulation;
     }
     
+    /* 轨迹SVG层 */
+    #trails {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    /* 历史点：白填充蓝边空心圆 */
+    .dot-history {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border: 1.5px solid var(--history-blue);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-sizing: border-box;
+      z-index: 2;
+      pointer-events: none;
+    }
+    
     .marker {
       position: absolute;
       width: 12px;
@@ -83,6 +110,7 @@
       transform: translate(-50%, -50%);
       pointer-events: none;
       box-shadow: 0 0 12px rgba(152, 177, 120, 0.5);
+      z-index: 3;
     }
     
     #submit {
@@ -120,6 +148,7 @@
         <h1>PLANT YOUR ALOE</h1>
         <div id="info">Pin on the map<br>where you placed your <strong id="leafId">—</strong></div>
       </div>
+      <svg id="trails"></svg>
     </div>
   </div>
   <div id="status"></div>
@@ -131,12 +160,94 @@
     document.getElementById('leafId').textContent = leafId;
     
     const map = document.getElementById('map');
+    const trailsSvg = document.getElementById('trails');
     const submitBtn = document.getElementById('submit');
     const status = document.getElementById('status');
     let chosenX = null, chosenY = null;
     let marker = null;
+    let history = [];
+    
+    // 加载这片叶子的历史
+    fetch('/api/leaves/' + leafId)
+      .then(r => r.json())
+      .then(data => {
+        history = data || [];
+        renderHistory();
+      });
+    // 监听服务器广播（接收clear信号）
+    const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(wsProtocol + '//' + location.host);
+    
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'clear') {
+        history = [];
+        renderHistory();
+        if (marker) {
+          marker.remove();
+          marker = null;
+        }
+        chosenX = null;
+        chosenY = null;
+        submitBtn.disabled = true;
+        status.textContent = '';
+      }
+    };
+    
+    function renderHistory() {
+      document.querySelectorAll('.dot-history').forEach(el => el.remove());
+      trailsSvg.innerHTML = '';
+      
+      if (history.length === 0) return;
+      
+      history.forEach((pt) => {
+        const dot = document.createElement('div');
+        dot.className = 'dot-history';
+        dot.style.left = (pt.x * 100) + '%';
+        dot.style.top = (pt.y * 100) + '%';
+        map.appendChild(dot);
+      });
+      
+      drawTrail(history);
+    }
+    
+    function drawTrail(pts) {
+      if (pts.length < 2) return;
+      
+      trailsSvg.setAttribute('viewBox', '0 0 100 133.33');
+      trailsSvg.setAttribute('preserveAspectRatio', 'none');
+      
+      let d = `M ${pts[0].x * 100} ${pts[0].y * 133.33}`;
+      
+      for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const curr = pts[i];
+        const px = prev.x * 100, py = prev.y * 133.33;
+        const cx = curr.x * 100, cy = curr.y * 133.33;
+        
+        const mx = (px + cx) / 2;
+        const my = (py + cy) / 2;
+        const dx = cx - px;
+        const dy = cy - py;
+        const ctrlX = mx - dy * 0.15;
+        const ctrlY = my + dx * 0.15;
+        
+        d += ` Q ${ctrlX} ${ctrlY}, ${cx} ${cy}`;
+      }
+      
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', 'var(--trail-grey)');
+      path.setAttribute('stroke-width', '0.2');
+      path.setAttribute('stroke-dasharray', '1.5 1.5');
+      path.setAttribute('opacity', '0.6');
+      trailsSvg.appendChild(path);
+    }
     
     map.addEventListener('click', (e) => {
+      if (e.target.closest('#header')) return;
+      
       const rect = map.getBoundingClientRect();
       chosenX = (e.clientX - rect.left) / rect.width;
       chosenY = (e.clientY - rect.top) / rect.height;
@@ -163,7 +274,15 @@
           body: JSON.stringify({ id: leafId, x: chosenX, y: chosenY })
         });
         if (res.ok) {
-         status.innerHTML = "Planted!<br>You can keep transplanting it wherever you like.";
+          status.innerHTML = "Planted!<br>You can keep transplanting it wherever you like.";
+          history.push({ x: chosenX, y: chosenY, t: Date.now() });
+          renderHistory();
+          if (marker) {
+            marker.remove();
+            marker = null;
+          }
+          chosenX = null;
+          chosenY = null;
         } else {
           status.textContent = 'error, try again';
           submitBtn.disabled = false;

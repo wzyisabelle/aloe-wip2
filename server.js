@@ -7,30 +7,35 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// 让后端能解析手机发来的JSON数据
 app.use(express.json());
-
-// 把public文件夹里的文件直接对外提供
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 内存里存所有叶片的位置 { leaf_01: {x: 0.5, y: 0.3}, ... }
+// 数据结构改变：每片叶子是一个数组，记录所有历史位置
+// { leaf_01: [{x, y, t}, {x, y, t}, ...], ... }
 const leaves = {};
 
-// 路由：观众扫NFC打开的页面
+// 观众页路由
 app.get('/plant', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'plant.html'));
 });
 
-// 路由：观众提交位置
+// 提交新位置：追加到该叶子的历史里
 app.post('/api/place', (req, res) => {
   const { id, x, y } = req.body;
   if (!id || x == null || y == null) {
     return res.status(400).json({ error: 'missing fields' });
   }
-  leaves[id] = { x, y, updatedAt: Date.now() };
   
-  // 广播给所有展示屏
-  const message = JSON.stringify({ type: 'update', id, x, y });
+  if (!leaves[id]) leaves[id] = [];
+  const point = { x, y, t: Date.now() };
+  leaves[id].push(point);
+  
+  // 广播：发送整片叶子的最新历史
+  const message = JSON.stringify({ 
+    type: 'update', 
+    id, 
+    history: leaves[id] 
+  });
   wss.clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
@@ -40,12 +45,30 @@ app.post('/api/place', (req, res) => {
   res.json({ success: true });
 });
 
-// 路由:获取当前所有叶片位置（展示屏初始加载时用）
+// 获取所有叶子的完整历史(展示页加载时用)
 app.get('/api/leaves', (req, res) => {
   res.json(leaves);
 });
 
-// WebSocket连接
+// 获取某一片叶子的历史(观众页加载时用)
+app.get('/api/leaves/:id', (req, res) => {
+  const id = req.params.id;
+  res.json(leaves[id] || []);
+});
+
+// 清除所有数据
+app.post('/api/clear', (req, res) => {
+  for (const id in leaves) delete leaves[id];
+  // 广播清除指令给所有展示屏
+  const message = JSON.stringify({ type: 'clear' });
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+  res.json({ success: true });
+});
+
 wss.on('connection', (ws) => {
   console.log('a display connected');
   ws.on('close', () => console.log('display disconnected'));

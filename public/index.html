@@ -17,6 +17,8 @@
     
     :root {
       --aloe-green: #98B178;
+      --history-grey: #888888;  /* 旧位置点的颜色，可调 */
+      --trail-grey: #b8b8b8;    /* 轨迹虚线颜色，可调 */
       --bg: #ffffff;
       --text: #333333;
     }
@@ -29,20 +31,21 @@
       overflow: hidden;
     }
     
-  h1 {
+    h1 {
       position: absolute;
-      top: 25%;            /* 距离地图顶部多远 */
-      right: 12%;          /* 距离地图右边多远 */
-      width: 35%;         /* 标题区域占地图宽度的百分比 */
-      text-align: center;  /* 文字右对齐 / 也可以 left / center */
+      top: 25%;
+      right: 12%;
+      width: 35%;
+      text-align: center;
       font-weight: normal;
       font-size: 24px;
       letter-spacing: 1px;
       margin: 0;
       line-height: 1.4;
+      z-index: 10;
     }
     
-#map-wrapper {
+    #map-wrapper {
       position: relative;
       width: 100vw;
       height: 100vh;
@@ -53,7 +56,7 @@
       background: #ffffff;
     }
     
-  #map {
+    #map {
       position: relative;
       height: 99%;
       aspect-ratio: 3 / 4;
@@ -62,6 +65,17 @@
       background-size: contain;
       background-repeat: no-repeat;
       background-position: center;
+    }
+    
+    /* 轨迹SVG层，盖在地图上但在圆点下方 */
+    #trails {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
     }
     
     .dot {
@@ -73,6 +87,20 @@
       transform: translate(-50%, -50%);
       transition: all 0.6s ease;
       box-shadow: 0 0 16px rgba(152, 177, 120, 0.5);
+      z-index: 3;
+    }
+    
+    /* 历史点（旧位置） */
+ .dot-history {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border: 1.5px solid #b4dff0;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-sizing: border-box;
+      z-index: 2;
     }
     
     .label {
@@ -85,53 +113,176 @@
       font-family: 'Hubballi', sans-serif;
       white-space: nowrap;
     }
+    
+    /* clean按钮 */
+    #clean-btn {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      padding: 6px 16px;
+      background: #ffffff;
+      border: 1px solid #b4dff0;
+      border-radius: 20px;
+      font-family: 'Hubballi', sans-serif;
+      font-size: 11px;
+      color: #888;
+      cursor: pointer;
+      letter-spacing: 1px;
+      z-index: 100;
+    }
+    
+    #clean-btn:hover {
+      background: #f5fbff;
+    }
   </style>
 </head>
 <body>
   <div id="map-wrapper">
     <div id="map">
       <h1>ALOE — Live Map</h1>
+      <svg id="trails"></svg>
     </div>
   </div>
   
+  <button id="clean-btn">clean</button>
+  
   <script>
     const map = document.getElementById('map');
-    const dots = {};
-
-    function updateDot(id, x, y) {
-      let dot = dots[id];
-      if (!dot) {
-        dot = document.createElement('div');
-        dot.className = 'dot';
+    const trailsSvg = document.getElementById('trails');
+    const leafElements = {}; // 每片叶子的当前dot元素
+    const historyElements = {}; // 每片叶子的历史点元素数组
+    const leafHistories = {}; // 每片叶子的完整数据
+    
+    // 渲染某片叶子的所有视觉元素（历史点、当前点、轨迹线）
+    function renderLeaf(id, history) {
+      leafHistories[id] = history;
+      if (!history || history.length === 0) return;
+      
+      // 清除该叶子之前的历史点
+      if (historyElements[id]) {
+        historyElements[id].forEach(el => el.remove());
+      }
+      historyElements[id] = [];
+      
+      // 绘制历史点（除了最后一个，最后一个是当前位置用绿色圆点显示）
+      const historyPoints = history.slice(0, -1);
+      const total = historyPoints.length;
+      
+      historyPoints.forEach((pt, i) => {
+        const dot = document.createElement('div');
+        dot.className = 'dot-history';
+        dot.style.left = (pt.x * 100) + '%';
+        dot.style.top = (pt.y * 100) + '%';
+        map.appendChild(dot);
+        historyElements[id].push(dot);
+      });
+      
+      // 绘制当前位置（最后一个点，绿色）
+      const current = history[history.length - 1];
+      let currentDot = leafElements[id];
+      if (!currentDot) {
+        currentDot = document.createElement('div');
+        currentDot.className = 'dot';
         const label = document.createElement('div');
         label.className = 'label';
         label.textContent = id;
-        dot.appendChild(label);
-        map.appendChild(dot);
-        dots[id] = dot;
+        currentDot.appendChild(label);
+        map.appendChild(currentDot);
+        leafElements[id] = currentDot;
       }
-      dot.style.left = (x * 100) + '%';
-      dot.style.top = (y * 100) + '%';
+      currentDot.style.left = (current.x * 100) + '%';
+      currentDot.style.top = (current.y * 100) + '%';
+      
+      // 绘制轨迹曲线
+      drawTrail(id, history);
     }
-
+    
+    // 用SVG贝塞尔曲线绘制轨迹
+    function drawTrail(id, history) {
+      // 移除该叶子旧的轨迹线
+      const oldPath = document.getElementById('trail-' + id);
+      if (oldPath) oldPath.remove();
+      
+      if (history.length < 2) return;
+      
+      // SVG的viewBox匹配map的aspect-ratio (3:4)
+      // 用百分比坐标转换，假设viewBox为100x133.33（保持3:4）
+      trailsSvg.setAttribute('viewBox', '0 0 100 133.33');
+      trailsSvg.setAttribute('preserveAspectRatio', 'none');
+      
+      // 构造贝塞尔曲线 path
+      // 每两点之间用smooth quadratic / cubic 平滑过渡
+      let d = `M ${history[0].x * 100} ${history[0].y * 133.33}`;
+      
+      for (let i = 1; i < history.length; i++) {
+        const prev = history[i - 1];
+        const curr = history[i];
+        const px = prev.x * 100, py = prev.y * 133.33;
+        const cx = curr.x * 100, cy = curr.y * 133.33;
+        
+        // 中点 + 偏移作为控制点，制造弧度
+        const mx = (px + cx) / 2;
+        const my = (py + cy) / 2;
+        // 给一点偏移让曲线不直
+        const dx = cx - px;
+        const dy = cy - py;
+        const offset = Math.sqrt(dx*dx + dy*dy) * 0.15;
+        // 垂直方向的偏移
+        const ctrlX = mx - dy * 0.15;
+        const ctrlY = my + dx * 0.15;
+        
+        d += ` Q ${ctrlX} ${ctrlY}, ${cx} ${cy}`;
+      }
+      
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('id', 'trail-' + id);
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', 'var(--trail-grey)');
+      path.setAttribute('stroke-width', '0.1');
+      path.setAttribute('stroke-dasharray', '1.5 1.5');
+      path.setAttribute('opacity', '0.6');
+      trailsSvg.appendChild(path);
+    }
+    
+    // 清除所有视觉元素
+    function clearAll() {
+      Object.values(leafElements).forEach(el => el.remove());
+      Object.values(historyElements).flat().forEach(el => el.remove());
+      trailsSvg.innerHTML = '';
+      Object.keys(leafElements).forEach(k => delete leafElements[k]);
+      Object.keys(historyElements).forEach(k => delete historyElements[k]);
+      Object.keys(leafHistories).forEach(k => delete leafHistories[k]);
+    }
+    
+    // 初始加载
     fetch('/api/leaves')
       .then(r => r.json())
       .then(data => {
-        Object.entries(data).forEach(([id, pos]) => updateDot(id, pos.x, pos.y));
+        Object.entries(data).forEach(([id, history]) => renderLeaf(id, history));
       });
-
+    
+    // WebSocket实时更新
     const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(wsProtocol + '//' + location.host);
     
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === 'update') {
-        updateDot(msg.id, msg.x, msg.y);
+        renderLeaf(msg.id, msg.history);
+      } else if (msg.type === 'clear') {
+        clearAll();
       }
     };
     
     ws.onopen = () => console.log('connected to server');
     ws.onclose = () => console.log('disconnected');
+    
+    // clean按钮
+    document.getElementById('clean-btn').addEventListener('click', async () => {
+      if (!confirm('Clear all aloe history?')) return;
+      await fetch('/api/clear', { method: 'POST' });
+    });
   </script>
 </body>
 </html>

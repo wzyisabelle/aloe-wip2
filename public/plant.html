@@ -19,33 +19,40 @@
     }
     
     body {
-      margin: 0; padding-top: 10px;
+      margin: 0;
+      padding-top: 24px;
       background: var(--bg);
       color: var(--text);
       font-family: 'Hubballi', sans-serif;
     }
     
     h1 {
-      text-align: center;
       font-weight: normal;
-      padding: 20px 20px 6px; //第三个数标题到info的距离
-      margin: 0;
-      font-size: 20px;
+      margin: 0 0 6px 0;
+      font-size: 18px;
       letter-spacing: 1px;
     }
     
-    #info {
-      text-align: center;
-      padding: 0 20px 14px; //第三个数info到地图的距离
+#info {
       color: #777;
-      font-size: 14px;
+      font-size: 13px;
+      margin: 0;
+      line-height: 1.4;
     }
     
     #info strong {
       color: var(--aloe-green);
       font-weight: normal;
     }
-    
+
+    #header {
+      position: absolute;
+      top: 18%;
+      right: 2%;
+      width: 80%;
+      text-align: right;
+    }
+
     #map-wrapper {
       display: flex;
       justify-content: center;
@@ -69,8 +76,8 @@
     
     .marker {
       position: absolute;
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       background: var(--aloe-green);
       border-radius: 50%;
       transform: translate(-50%, -50%);
@@ -80,12 +87,12 @@
     
     #submit {
       display: block;
-      margin: 24px auto 16px;
+      margin: 18px auto 16px;
       padding: 14px 22px;
       background: var(--aloe-green);
       color: white;
       border: none;
-      border-radius: 30px;//圆角
+      border-radius: 30px;/*圆角*/
       font-size: 16px;
       font-family: 'Hubballi', sans-serif;
       letter-spacing: 1px;
@@ -99,7 +106,7 @@
     #status {
       text-align: center;
       padding: 6px; 
-      margin-top: 14px; //地图底部到 planted! 的距离
+      margin-top: 14px; /*地图底部到 planted! 的距离*/
       color: var(--aloe-green);
       font-size: 14px;
       min-height: 20px;
@@ -107,10 +114,13 @@
   </style>
 </head>
 <body>
-  <h1>PLANT YOUR ALOE</h1>
-  <div id="info">Tap on the map where you want to plant <strong id="leafId">—</strong></div>
   <div id="map-wrapper">
-    <div id="map"></div>
+    <div id="map">
+      <div id="header">
+        <h1>PLANT YOUR ALOE</h1>
+        <div id="info">Pin on the map<br>where you placed your aloe <strong id="leafId">—</strong></div>
+      </div>
+    </div>
   </div>
   <div id="status"></div>
   <button id="submit" disabled>Plant Here</button>
@@ -153,7 +163,7 @@
           body: JSON.stringify({ id: leafId, x: chosenX, y: chosenY })
         });
         if (res.ok) {
-          status.textContent = "You've planted an aloe leaf here!"
+          status.textContent = "Planted! You can keep transplanting it wherever you like.";
         } else {
           status.textContent = 'error, try again';
           submitBtn.disabled = false;

@@ -22,25 +22,30 @@
     }
     
     body {
-      margin: 0; padding-top: 34px;
+      margin: 0;
       background: var(--bg);
       color: var(--text);
       font-family: 'Hubballi', sans-serif;
       overflow: hidden;
     }
     
-    h1 {
-      text-align: center;
+  h1 {
+      position: absolute;
+      top: 25%;            /* 距离地图顶部多远 */
+      right: 22%;          /* 距离地图右边多远 */
+      width: 35%;         /* 标题区域占地图宽度的百分比 */
+      text-align: right;  /* 文字右对齐 / 也可以 left / center */
       font-weight: normal;
-      margin: 20px 0 2px;
       font-size: 24px;
       letter-spacing: 1px;
+      margin: 0;
+      line-height: 1.4;
     }
     
-    #map-wrapper {
+ #map-wrapper {
       position: relative;
       width: 100vw;
-      height: calc(100vh - 95px);
+      height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -82,9 +87,10 @@
   </style>
 </head>
 <body>
-  <h1>Aloe — Live Map</h1>
   <div id="map-wrapper">
-    <div id="map"></div>
+    <div id="map">
+      <h1>Aloe — Live Map</h1>
+    </div>
   </div>
   
   <script>

@@ -5,7 +5,8 @@
   <title>Aloe Display</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <meta name="apple-mobile-web-app-title" content="Aloe">
   <style>
     @font-face {
@@ -18,7 +19,7 @@
     :root {
       --aloe-green: #98B178;
       --history-grey: #888888;  /* 旧位置点的颜色，可调 */
-      --trail-grey: #b8b8b8;    /* 轨迹虚线颜色，可调 */
+      --trail-grey: #f8efc6;    /* 轨迹虚线颜色，可调 */
       --bg: #ffffff;
       --text: #333333;
     }
@@ -239,9 +240,9 @@
       path.setAttribute('d', d);
       path.setAttribute('fill', 'none');
       path.setAttribute('stroke', 'var(--trail-grey)');
-      path.setAttribute('stroke-width', '0.1');
-      path.setAttribute('stroke-dasharray', '1.5 1.5');
-      path.setAttribute('opacity', '0.6');
+      path.setAttribute('stroke-width', '0.08');/*虚线粗细*/
+     /* path.setAttribute('stroke-dasharray', '1.5 1.5');/*第一个是线段长，第二个是间隔长)*/
+      path.setAttribute('opacity', '1');
       trailsSvg.appendChild(path);
     }
     

@@ -263,21 +263,50 @@
         Object.entries(data).forEach(([id, history]) => renderLeaf(id, history));
       });
     
-    // WebSocket实时更新
+ // WebSocket实时更新（带自动重连）
     const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(wsProtocol + '//' + location.host);
+    let ws;
     
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === 'update') {
-        renderLeaf(msg.id, msg.history);
-      } else if (msg.type === 'clear') {
-        clearAll();
+    function connectWebSocket() {
+      ws = new WebSocket(wsProtocol + '//' + location.host);
+      
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'update') {
+          renderLeaf(msg.id, msg.history);
+        } else if (msg.type === 'clear') {
+          clearAll();
+        }
+      };
+      
+      ws.onopen = () => {
+        console.log('connected to server');
+        // 重连后重新拉一次最新数据，补上断线期间错过的更新
+        fetch('/api/leaves')
+          .then(r => r.json())
+          .then(data => {
+            Object.entries(data).forEach(([id, history]) => renderLeaf(id, history));
+          });
+      };
+      
+      ws.onclose = () => {
+        console.log('disconnected, retrying in 2s');
+        setTimeout(connectWebSocket, 2000);
+      };
+      
+      ws.onerror = () => {
+        console.log('websocket error');
+      };
+    }
+    
+    connectWebSocket();
+    
+    // 页面重新可见时（iPad唤醒、切回前台），主动重连
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && (!ws || ws.readyState !== WebSocket.OPEN)) {
+        connectWebSocket();
       }
-    };
-    
-    ws.onopen = () => console.log('connected to server');
-    ws.onclose = () => console.log('disconnected');
+    });
     
     // clean按钮
     document.getElementById('clean-btn').addEventListener('click', async () => {

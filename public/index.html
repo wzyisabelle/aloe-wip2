@@ -55,17 +55,19 @@
       align-items: flex-start;
       box-sizing: border-box;
       background: #ffffff;
+      padding: 3% 0;        /* 加上下padding */
     }
     
-    #map {
+#map {
       position: relative;
       height: 99%;
-      aspect-ratio: 3 / 4;
-      max-width: 90%;
-      background-image: url('/assets/map.png');
-      background-size: 100% 100%;
-      background-repeat: no-repeat;
-      background-position: center;
+      display: flex;
+    }
+    
+    #map-img {
+      height: 100%;
+      width: auto;
+      display: block;
     }
     
     /* 轨迹SVG层，盖在地图上但在圆点下方 */
@@ -140,6 +142,7 @@
 <body>
   <div id="map-wrapper">
     <div id="map">
+      <img id="map-img" src="/assets/map.png" alt="map">
       <h1>ALOE — Live Map</h1>
       <svg id="trails"></svg>
     </div>

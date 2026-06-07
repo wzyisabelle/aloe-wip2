@@ -50,7 +50,7 @@
     #header {
       position: absolute;
       top: 18%;
-      right: 2%;
+      right: 1%;
       width: 80%;
       text-align: right;
     }
@@ -64,16 +64,16 @@
     
     #map {
       position: relative;
-      width: 100%;
       max-width: 520px;
-      aspect-ratio: 3 / 4;
-      background-image: url('/assets/map.png');
-      background-size: 100% 100%;
-      background-repeat: no-repeat;
-      background-position: center;
-      background-color: #ffffff;
       cursor: crosshair;
       touch-action: manipulation;
+      display: inline-block;
+    }
+    
+    #map-img {
+      width: 100%;
+      height: auto;
+      display: block;
     }
     
     /* 轨迹SVG层 */
@@ -144,10 +144,11 @@
 <body>
   <div id="map-wrapper">
     <div id="map">
+      <img id="map-img" src="/assets/map.png" alt="map">
       <div id="header">
         <h1>PLANT YOUR ALOE</h1>
         <div id="info">Pin on the map<br>where you placed your <strong id="leafId">—</strong></div>
-      </div>
+         </div>
       <svg id="trails"></svg>
     </div>
   </div>

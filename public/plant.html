@@ -90,27 +90,28 @@
     /* 历史点：白填充蓝边空心圆 */
     .dot-history {
       position: absolute;
-      width: 12px;
-      height: 12px;
-      background: #ffffff;
-      border: 1.5px solid var(--history-blue);
-      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      background-image: url('/assets/leaf-history.svg');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
       transform: translate(-50%, -50%);
-      box-sizing: border-box;
       z-index: 2;
       pointer-events: none;
     }
     
     .marker {
       position: absolute;
-      width: 12px;
-      height: 12px;
-      background: var(--aloe-green);
-      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      background-image: url('/assets/leaf-current.svg');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
       transform: translate(-50%, -50%);
-      pointer-events: none;
-      box-shadow: 0 0 12px rgba(152, 177, 120, 0.5);
       z-index: 3;
+      pointer-events: none;
     }
     
     #submit {
